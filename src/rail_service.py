@@ -16,14 +16,13 @@ SPOKES = {
     "MAN": "Manchester Piccadilly",
     "YRK": "York",
     "WKF": "Wakefield Westgate",
-    "HGT": "Harrogate",
-    "BDI": "Bradford Interchange"
+    "HGT": "Harrogate"
 }
 
 def get_live_arrivals(hub_code="LDS"):
     """
     Fetches arrivals from Huxley and scans history for spoke stations.
-    Includes logic to handle pass-through trains (e.g. London -> Wakefield -> Leeds).
+    Includes logic to handle pass through trains (e.g. London -> Wakefield -> Leeds).
     """
 
     url = f"{BASE_URL}/arrivals/{hub_code}/20?accessToken={TOKEN}&expand=true"    
@@ -41,6 +40,7 @@ def get_live_arrivals(hub_code="LDS"):
 
         
         for train in trains:
+            print(train)
             origin_list = train.get("origin", [])
             if not origin_list:
                 continue
@@ -63,9 +63,10 @@ def get_live_arrivals(hub_code="LDS"):
                         matched_spoke = point.get("crs")
                         # We don't break here; if it stops at multiple spokes
             
+            # Process Valid Trains
             if matched_spoke:
-                et = train.get("et")
-                std = train.get("std")
+                et = train.get("eta") 
+                std = train.get("sta")
                 
                 status = "On Time"
                 delay_minutes = 0
@@ -73,12 +74,11 @@ def get_live_arrivals(hub_code="LDS"):
                 if et == "Cancelled":
                     status = "Cancelled"
                     delay_minutes = 60
-                elif et == "On time":
-                    status = "On Time"
-                    delay_minutes = 0
                 elif et and et != "On time":
                     status = "Delayed"
-                    delay_minutes = 10 # Simplified penalty
+                    delay_minutes = 10
+                
+                delay_reason = train.get("delayReason")
                 
                 relevant_trains.append({
                     "from_code": matched_spoke,         
@@ -88,14 +88,56 @@ def get_live_arrivals(hub_code="LDS"):
                     "estimated": et,
                     "status": status,
                     "delay_weight": delay_minutes,
-                    "platform": train.get("platform", "TBC")
+                    "platform": train.get("platform"),
+                    "delay_reason": delay_reason
                 })
                 
         return relevant_trains
 
     except Exception as e:
-        print(f"⚠️ API ERROR: {e}")
-        return []
+        print(f"API ERROR: {e}. Using mock data.")
+        return [
+        {
+            "from_code": "MAN",
+            "from_name": "Manchester Piccadilly",
+            "origin_city": "Manchester Piccadilly",
+            "scheduled": "18:00",
+            "estimated": "18:15", # Late!
+            "status": "Delayed",
+            "delay_weight": 15,
+            "platform": "12"
+        },
+        {
+            "from_code": "YRK",
+            "from_name": "York",
+            "origin_city": "York",
+            "scheduled": "18:05",
+            "estimated": "On time",
+            "status": "On Time",
+            "delay_weight": 0,
+            "platform": "8"
+        },
+        {
+            "from_code": "WKF",
+            "from_name": "Wakefield Westgate",
+            "origin_city": "London Kings Cross",
+            "scheduled": "18:10",
+            "estimated": "Cancelled", # Severe!
+            "status": "Cancelled",
+            "delay_weight": 60,
+            "platform": "TBC"
+        },
+         {
+            "from_code": "HGT",
+            "from_name": "Harrogate",
+            "origin_city": "Harrogate",
+            "scheduled": "18:20",
+            "estimated": "On time",
+            "status": "On Time",
+            "delay_weight": 0,
+            "platform": "1"
+        }
+    ]
 
 if __name__ == "__main__":
     if not TOKEN:
@@ -106,4 +148,4 @@ if __name__ == "__main__":
         
         print(f"Found {len(results)} relevant trains.")
         for t in results:
-            print(f" -> [Line: {t['from_code']}] Service from {t['origin_city']}: {t['status']} ({t['estimated']})")
+            print(f" -> [Line: {t['from_code']}] {t['scheduled']} Service from {t['origin_city']}: {t['status']}. {t['delay_reason'] if t['delay_reason'] else ''} ({t['estimated']}). Platform {t['platform'] if t['platform'] else 'TBC'}")
