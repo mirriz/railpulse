@@ -158,7 +158,7 @@ def delete_incident(
     db: Session = Depends(get_db)
 ):
     """
-    [SECURE] Delete a report. Fails if the user is not the owner.
+    Delete a report. Fails if the user is not the owner.
     """
     incident = db.query(models.Incident).filter(models.Incident.id == incident_id).first()
     
@@ -174,33 +174,59 @@ def delete_incident(
 
 
 # ANALYTICS
-@app.get("/analytics/leeds-health", tags=["Analytics"])
+@app.get("/analytics/hub-health", tags=["Innovation"])
 def get_hub_health(db: Session = Depends(get_db)):
     """
-    Combines live rail data with user-reported incidents to give an overall health score for Leeds.
-     - More severe incidents and more delays = worse score
-     - Score is translated into a simple status (Green/Amber/Red)
+    Returns a normalised 'Hub Stress Score' between 0.0 (Perfect) and 1.0 (Critical).
     """
+    # Fetch Live Rail Data
     rail_data = rail_service.get_live_arrivals()
     reports = db.query(models.Incident).all()
     
-    total_severity = sum(r.severity for r in reports)
-    delayed_trains = len([t for t in rail_data if t['status'] != 'On Time'])
+    # Calculate Averages
+    # User Reports
+    avg_severity = 0
+    if reports:
+        avg_severity = sum(r.severity for r in reports) / len(reports)
+
+    # Rail Data (Max possible effectively = 60 mins)
+    total_trains = len(rail_data)
+    avg_delay_minutes = 0
+    if total_trains > 0:
+        total_delay_minutes = sum(t['delay_weight'] for t in rail_data)
+        avg_delay_minutes = total_delay_minutes / total_trains
+
+    # Normalisation Logic
+    WEIGHT_SEVERITY = 0.35  # User reports account for 35% of the score
+    WEIGHT_DELAY = 0.65     # Train delays account for 65% of the score
     
-    # Higher = Worse
-    score = (total_severity * 2) + (delayed_trains * 5)
+    # Normalise Severity
+    norm_severity = avg_severity / 5.0
     
-    color = "GREEN"
-    if score > 50: color = "RED"
-    elif score > 20: color = "AMBER"
+    # Normalise Delay
+    # Prevents a single delayed train from skewing the score when 99 others are on time.
+    max_delay = min(avg_delay_minutes, 60)
+    norm_delay = max_delay / 60.0
+
+    # Final Weighted Score (0.0 to 1.0)
+    stress_score = (norm_severity * WEIGHT_SEVERITY) + (norm_delay * WEIGHT_DELAY)
+    
+    # Status Logic
+    status = "GREEN"
+    if stress_score > 0.7:  # > 70% Stress
+        status = "RED"
+    elif stress_score > 0.3: # > 30% Stress
+        status = "AMBER"
 
     return {
         "timestamp": datetime.now(),
-        "status": color,
-        "score": score,
-        "metrics": {
-            "reports": len(reports),
-            "delays": delayed_trains
+        "overall_hub_status": status,
+        "stress_index": round(stress_score, 2), # e.g., 0.45
+        "raw_metrics": {
+            "avg_user_severity": round(avg_severity, 1),
+            "avg_delay_minutes": round(avg_delay_minutes, 1),
+            "total_trains": total_trains,
+            "total_reports": len(reports)
         }
     }
 
