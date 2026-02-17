@@ -47,11 +47,11 @@ The core IP of this project is the weighted algorithm found in `src/routers/anal
 
 | Component | Technology | Justification |
 | :--- | :--- | :--- |
-| **Framework** | **FastAPI** | Chosen for asynchronous performance and automatic OpenAPI (Swagger) generation. |
-| **Database** | **PostgreSQL** | Relational integrity required for complex User-Incident relationships. Hosted on **Azure**. |
+| **Framework** | **FastAPI** | Chosen for asynchronous performance and OpenAPI (Swagger) generation. |
+| **Database** | **PostgreSQL** | Relational integrity required for User-Incident relationships. Hosted on Azure. |
 | **ORM** | **SQLAlchemy** | Provides SQL injection protection and Pythonic database abstraction. |
-| **External API** | **Huxley 2** | A robust JSON proxy for the SOAP-based National Rail Darwin Data Feeds. |
-| **Testing** | **Pytest** | Industry-standard testing framework for unit and integration tests. |
+| **External API** | **Huxley 2** | A JSON proxy for the SOAP-based National Rail Darwin Data Feeds. |
+| **Testing** | **Pytest** | Industry standard testing framework for unit and integration tests. |
 
 ---
 
@@ -129,4 +129,5 @@ This project is submitted for COMP3011: Web Services and Web Data.
 Author: Alexander East
 
 Declaration: Code is my own work, except where libraries are imported. GenAI was used for debugging and planning as per the assessment category.
+
 
