@@ -7,7 +7,7 @@
 
 **RailPulse** is a transport analytics engine that fuses **telemetry** (National Rail live data) with **crowd sentiment** (passenger reports) to determine the stress level of UK rail hubs.
 
-### **[View Live Deployment](https://railpulse-w5g2.onrender.com)**
+### **[View Live Frontend Deployment](https://railpulse-front.onrender.com/)**
 ### **[View API Documentation](https://github.com/mirriz/railpulse/blob/main/documentation/railpulse_api_doc_swagger_expanded.pdf)**
 
 ---
@@ -132,6 +132,7 @@ This project is submitted for COMP3011: Web Services and Web Data.
 Author: Alexander East
 
 Declaration: GenAI was used for planning, debugging, and structuring code and comments as per the assessment category.
+
 
 
 
